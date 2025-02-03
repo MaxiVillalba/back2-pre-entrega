@@ -1,4 +1,4 @@
-import { generateToken } from "../utils/jwt";
+import { generateToken } from "../utils/jwt.js";
 
 export class AuthController {
  static async login (req, res) {

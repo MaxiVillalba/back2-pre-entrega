@@ -10,3 +10,4 @@ authRouter.post("/login", passport.authenticate("login", { session: false }), Au
 authRouter.post("/register", passport.authenticate("login", { session: false }), AuthController.register);
 
 authRouter.get("/current", passport.authenticate("jwt", { session: false}), AuthController.current);
+

@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import express from "express";
 import passport from "passport";
 
-import authRoutes from "./routes/auth.routes.js";
+import {authRouter} from "./routes/auth.routes.js";
 import { initializePassport } from "./config/passport.config.js";
 
 const app = express();
@@ -19,7 +19,7 @@ app.use(cookieParser());
 
 // Passport configuracion
 
-initiacizePassport();
+initializePassport();
 app.use(passport.initialize());
 
 // Mongoose
@@ -32,7 +32,7 @@ mongoose
     console.log("Error connecting to MongoDB", error);
 });
 
-app.use("/auth", authRoutes);
+app.use("/auth", authRouter);
 
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

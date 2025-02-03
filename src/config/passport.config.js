@@ -2,9 +2,19 @@ import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as JWTStrategy, ExtractJwt } from 'passport-jwt';
 
-import { userModel } from "../models/user.model.js";
+import { userModel } from "../dao/models/user.model.js";
 import { JWT_SECRET } from "../utils/jwt.js";
 import { verifyPassword, createHash } from "../utils/hash.js";
+
+// Función para extraer el token desde las cookies
+function cookieExtractor(req) {
+    let token = null; 
+    if (req && req.cookies) {
+        token = req.cookies.token;
+    }
+    console.log("Token extraído en cookieExtractor:", token);
+    return token;
+}
 
 // Estrategia de registro
 export function initializePassport() {
@@ -13,15 +23,18 @@ export function initializePassport() {
       passReqToCallback: true,
     },
     async (req, email, password, done) => {
-      const { firstName, lastName, age, password } = req.body;
+      const { firstName, lastName, age } = req.body; // Eliminado password (ya se recibe como parámetro)
 
       if (!email || !password || !firstName || !lastName || !age) {
         return done(null, false, { message: "All fields are required" });
       }
+
+      const hashedPassword = await createHash(password);
+
       try {
         const user = await userModel.create({
             email,
-            password,
+            password: hashedPassword,
             first_name: firstName,
             last_name: lastName,    
             age,
@@ -34,14 +47,13 @@ export function initializePassport() {
     })
   );
 
+  // Estrategia de login
   passport.use("login", new LocalStrategy({
         usernameField: "email",
       },
       async (email, password, done) => {
         try {
-            const user = await userModel.findOne({
-                email,
-            });
+            const user = await userModel.findOne({ email });
 
             if (!user) return done(null, false, { message: "User not found" });
 
@@ -56,12 +68,13 @@ export function initializePassport() {
       })
   );
 
+  // Estrategia JWT
   passport.use(
     "jwt", new JWTStrategy({
         secretOrKey: JWT_SECRET,
         jwtFromRequest: ExtractJwt.fromExtractors([cookieExtractor]),
     },
-    async(payload, done) => {
+    async (payload, done) => {
         try {
             return done(null, payload);
         } catch (error) {
@@ -70,25 +83,18 @@ export function initializePassport() {
     })
   );
 
+  // Serialización del usuario
   passport.serializeUser((user, done) => {
     done(null, user._id);
   });
 
-  passport.deserializeUser( async (id, done) => {
+  // Deserialización del usuario
+  passport.deserializeUser(async (id, done) => {
     try {
         const user = await userModel.findById(id);
         return done(null, user);
     } catch (error) {
-        return done(`An error occurred: ${error.message}`);
+        return done(error, null);
     }
   });
-
-  function cookieExtractor(req) {
-    let token = null; 
-    if (req && req.cookies) {
-        token = req.cookies.token;
-    }
-    console.log("cookieExtractor", token);
-    return token;
-  }
 }
